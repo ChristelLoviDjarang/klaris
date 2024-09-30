@@ -34,14 +34,14 @@ export function Avatar(props) {
   const lipsync = JSON.parse(jsonFile);
 
   const group = useRef();
-  const { nodes, materials } = useGLTF("/models/66ea716fe71d59d70009b73e.glb");
+  const { nodes, materials } = useGLTF("/models/66de6b33bb9d79984d437c2f.glb");
 
-  const { animations: idleAnimations } = useFBX("/animations/Idle.fbx");
+  const { animations: standardAnimations } = useFBX("/animations/Standard Idle.fbx");
   const { animations: talkingAnimations } = useFBX("/animations/Talking.fbx");
   const { animations: wavingAnimations } = useFBX("/animations/Waving.fbx");
 
-  if (idleAnimations.length > 0) {
-    idleAnimations[0].name = "Idle";
+  if (standardAnimations.length > 0) {
+    standardAnimations[0].name = "Standard";
   }
   if (talkingAnimations.length > 0) {
     talkingAnimations[0].name = "Talking";
@@ -50,10 +50,10 @@ export function Avatar(props) {
     wavingAnimations[0].name = "Waving";
   }
 
-  const [animation, setAnimation] = useState("Idle");
+  const [animation, setAnimation] = useState("Standard");
 
   const { actions } = useAnimations(
-    [...talkingAnimations, ...wavingAnimations, ...idleAnimations],
+    [...talkingAnimations, ...wavingAnimations, ...standardAnimations],
     group
   );
 
@@ -69,7 +69,7 @@ export function Avatar(props) {
     }
   }, [animation, actions]);
 
-  useFrame(() => {
+  useFrame((state, delta) => {
     const currentAudioTime = audio.currentTime;
 
     Object.values(corresponding).forEach((value) => {
@@ -99,21 +99,48 @@ export function Avatar(props) {
     }
 
     if (audio.paused || audio.ended) {
-      setAnimation("Idle");
+      setAnimation("Standard");
     }
   });
 
   useEffect(() => {
+    const playGreeting = () => {
+      if (script === "greeting" && playAudio) {
+        audio.play()
+          .then(() => {
+            setAnimation("Talking");
+          })
+          .catch((err) => console.error("Audio playback failed", err));
+      }
+    };
+
+    // Play greeting immediately when component mounts
+    playGreeting();
+
+    // Set up interval to play greeting every 15 minutes
+    const intervalId = setInterval(playGreeting, 2 * 60 * 1000);
+//ini bagian timer
+
+    return () => {
+      clearInterval(intervalId);
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, [playAudio, audio, script]);
+
+  useEffect(() => {
     const handleCanPlayThrough = () => {
-      if (playAudio) {
+      if (playAudio && script !== "greeting") {
         audio
           .play()
           .then(() => {
             setAnimation("Talking");
           })
           .catch((err) => console.error("Audio playback failed", err));
-      } else {
-        setAnimation("Idle");
+      } else if (!playAudio) {
+        setAnimation("Standard");
       }
     };
 
@@ -198,4 +225,4 @@ export function Avatar(props) {
   );
 }
 
-useGLTF.preload("/models/66ea716fe71d59d70009b73e.glb");
+useGLTF.preload("/models/66de6b33bb9d79984d437c2f.glb");
