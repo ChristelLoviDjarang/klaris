@@ -36,6 +36,12 @@ export function Avatar(props) {
   const group = useRef();
   const { nodes, materials } = useGLTF("/models/66de6b33bb9d79984d437c2f.glb");
 
+  // Check if nodes are loaded properly
+  if (!nodes || !materials) {
+    console.error("Model nodes or materials are not loaded.");
+    return null; // Prevent rendering if model is not loaded
+  }
+
   const { animations: standardAnimations } = useFBX("/animations/Standard Idle.fbx");
   const { animations: talkingAnimations } = useFBX("/animations/Talking.fbx");
   const { animations: wavingAnimations } = useFBX("/animations/Waving.fbx");
@@ -72,29 +78,40 @@ export function Avatar(props) {
   useFrame((state, delta) => {
     const currentAudioTime = audio.currentTime;
 
-    Object.values(corresponding).forEach((value) => {
-      nodes.Wolf3D_Head.morphTargetInfluences[
-        nodes.Wolf3D_Head.morphTargetDictionary[value]
-      ] = 0;
-      nodes.Wolf3D_Teeth.morphTargetInfluences[
-        nodes.Wolf3D_Teeth.morphTargetDictionary[value]
-      ] = 0;
-    });
+    // Ensure nodes exist before accessing morphTargetInfluences
+    if (nodes.Wolf3D_Head && nodes.Wolf3D_Teeth) {
+      Object.values(corresponding).forEach((value) => {
+        if (nodes.Wolf3D_Head.morphTargetDictionary[value] !== undefined) {
+          nodes.Wolf3D_Head.morphTargetInfluences[
+            nodes.Wolf3D_Head.morphTargetDictionary[value]
+          ] = 0;
+        }
+        if (nodes.Wolf3D_Teeth.morphTargetDictionary[value] !== undefined) {
+          nodes.Wolf3D_Teeth.morphTargetInfluences[
+            nodes.Wolf3D_Teeth.morphTargetDictionary[value]
+          ] = 0;
+        }
+      });
 
-    for (let i = 0; i < lipsync.mouthCues.length; i++) {
-      const mouthCues = lipsync.mouthCues[i];
-      if (currentAudioTime >= mouthCues.start && currentAudioTime <= mouthCues.end) {
-        nodes.Wolf3D_Head.morphTargetInfluences[
-          nodes.Wolf3D_Head.morphTargetDictionary[
-            corresponding[mouthCues.value]
-          ]
-        ] = 0.5;
-        nodes.Wolf3D_Teeth.morphTargetInfluences[
-          nodes.Wolf3D_Teeth.morphTargetDictionary[
-            corresponding[mouthCues.value]
-          ]
-        ] = 0.5;
-        break;
+      for (let i = 0; i < lipsync.mouthCues.length; i++) {
+        const mouthCues = lipsync.mouthCues[i];
+        if (currentAudioTime >= mouthCues.start && currentAudioTime <= mouthCues.end) {
+          if (nodes.Wolf3D_Head.morphTargetDictionary[corresponding[mouthCues.value]] !== undefined) {
+            nodes.Wolf3D_Head.morphTargetInfluences[
+              nodes.Wolf3D_Head.morphTargetDictionary[
+                corresponding[mouthCues.value]
+              ]
+            ] = 0.5;
+          }
+          if (nodes.Wolf3D_Teeth.morphTargetDictionary[corresponding[mouthCues.value]] !== undefined) {
+            nodes.Wolf3D_Teeth.morphTargetInfluences[
+              nodes.Wolf3D_Teeth.morphTargetDictionary[
+                corresponding[mouthCues.value]
+              ]
+            ] = 0.5;
+          }
+          break;
+        }
       }
     }
 
@@ -118,8 +135,7 @@ export function Avatar(props) {
     playGreeting();
 
     // Set up interval to play greeting every 15 minutes
-    const intervalId = setInterval(playGreeting, 2 * 60 * 1000);
-//ini bagian timer
+    const intervalId = setInterval(playGreeting, 15 * 60 * 1000); // Changed to 15 minutes
 
     return () => {
       clearInterval(intervalId);
@@ -200,6 +216,11 @@ export function Avatar(props) {
         geometry={nodes.Wolf3D_Hair.geometry}
         material={materials.Wolf3D_Hair}
         skeleton={nodes.Wolf3D_Hair.skeleton}
+      />
+      <skinnedMesh
+        geometry={nodes.Wolf3D_Glasses.geometry}
+        material={materials.Wolf3D_Glasses}
+        skeleton={nodes.Wolf3D_Glasses.skeleton}
       />
       <skinnedMesh
         geometry={nodes.Wolf3D_Body.geometry}
